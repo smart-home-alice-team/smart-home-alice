@@ -1,0 +1,34 @@
+from fastapi.testclient import TestClient
+
+from cloud.app.main import app
+
+c = TestClient(app)
+H = {"Authorization": "Bearer test-token", "X-Request-Id": "r1"}
+
+
+def test_ping():
+    assert c.head("/v1.0/").status_code == 200
+
+
+def test_unauthorized():
+    assert c.get("/v1.0/user/devices").status_code == 401
+
+
+def test_discovery():
+    r = c.get("/v1.0/user/devices", headers=H).json()
+    assert r["request_id"] == "r1"
+    assert {d["id"] for d in r["payload"]["devices"]} == {"lamp-1", "socket-1"}
+
+
+def test_action_then_query():
+    body = {"payload": {"devices": [{"id": "lamp-1", "capabilities": [
+        {"type": "devices.capabilities.on_off", "state": {"instance": "on", "value": True}}]}]}}
+    r = c.post("/v1.0/user/devices/action", json=body, headers=H).json()
+    assert r["payload"]["devices"][0]["capabilities"][0]["state"]["action_result"]["status"] == "DONE"
+    q = c.post("/v1.0/user/devices/query", json={"devices": [{"id": "lamp-1"}]}, headers=H).json()
+    assert q["payload"]["devices"][0]["capabilities"][0]["state"]["value"] is True
+
+
+def test_unknown_device():
+    q = c.post("/v1.0/user/devices/query", json={"devices": [{"id": "x"}]}, headers=H).json()
+    assert q["payload"]["devices"][0]["error_code"] == "DEVICE_NOT_FOUND"

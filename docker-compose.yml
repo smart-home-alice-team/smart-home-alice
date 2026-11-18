@@ -1,0 +1,38 @@
+services:
+  api:
+    build: ./cloud
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on: [db, redis, mqtt]
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: smarthome
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports: ["8883:8883"]
+    volumes: ["./infra/mosquitto:/mosquitto/config"]
+
+  # --- локальный шлюз (Raspberry Pi), запускается с профилем gateway
+  gateway:
+    build: ./gateway
+    profiles: [gateway]
+    env_file: .env
+    depends_on: [zigbee2mqtt, matter-server]
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    profiles: [gateway]
+    volumes: ["./infra/zigbee2mqtt:/app/data"]
+    devices: ["/dev/ttyUSB0:/dev/ttyUSB0"]
+  matter-server:
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable
+    profiles: [gateway]
+    network_mode: host
+    volumes: ["matterdata:/data"]
+volumes:
+  pgdata:
+  matterdata:
