@@ -32,7 +32,7 @@ def test_action_then_query():
 def test_unknown_device():
     q = c.post("/v1.0/user/devices/query", json={"devices": [{"id": "x"}]}, headers=H).json()
     assert q["payload"]["devices"][0]["error_code"] == "DEVICE_NOT_FOUND"
-
+    
 
 def test_query_several_devices():
     body = {"devices": [{"id": "socket-1"}, {"id": "lamp-1"}, {"id": "nope"}]}
@@ -43,3 +43,19 @@ def test_query_several_devices():
     assert socket_state["type"] == "devices.capabilities.on_off"
     assert socket_state["state"] == {"instance": "on", "value": True}
     assert devices[2]["error_code"] == "DEVICE_NOT_FOUND"
+
+    
+
+def test_unlink():
+    r = c.post("/v1.0/user/unlink", headers=H)
+    assert r.status_code == 200
+    assert r.json()["request_id"] == "r1"
+
+
+def test_action_unknown_device():
+    body = {"payload": {"devices": [{"id": "x", "capabilities": [
+        {"type": "devices.capabilities.on_off", "state": {"instance": "on", "value": True}}]}]}}
+    r = c.post("/v1.0/user/devices/action", json=body, headers=H).json()
+    result = r["payload"]["devices"][0]["capabilities"][0]["state"]["action_result"]
+    assert result["status"] == "ERROR"
+    assert result["error_code"] == "DEVICE_NOT_FOUND"
