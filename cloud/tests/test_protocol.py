@@ -32,3 +32,14 @@ def test_action_then_query():
 def test_unknown_device():
     q = c.post("/v1.0/user/devices/query", json={"devices": [{"id": "x"}]}, headers=H).json()
     assert q["payload"]["devices"][0]["error_code"] == "DEVICE_NOT_FOUND"
+
+
+def test_query_several_devices():
+    body = {"devices": [{"id": "socket-1"}, {"id": "lamp-1"}, {"id": "nope"}]}
+    q = c.post("/v1.0/user/devices/query", json=body, headers=H).json()
+    devices = q["payload"]["devices"]
+    assert [d["id"] for d in devices] == ["socket-1", "lamp-1", "nope"]
+    socket_state = devices[0]["capabilities"][0]
+    assert socket_state["type"] == "devices.capabilities.on_off"
+    assert socket_state["state"] == {"instance": "on", "value": True}
+    assert devices[2]["error_code"] == "DEVICE_NOT_FOUND"
