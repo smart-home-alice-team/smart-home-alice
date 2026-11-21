@@ -1,7 +1,7 @@
 """Адаптер навыка умного дома: протокол платформы Yandex Smart Home (REST, /v1.0)."""
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 
-from .devices import DEVICES
+from .devices import DEVICES, capability_states
 
 app = FastAPI(title="Smart Home Alice Skill")
 TEST_TOKEN = "test-token"  # в рабочей версии проверяется токен OAuth 2.0
@@ -41,9 +41,7 @@ async def query(request: Request, x_request_id: str = Header(""), authorization:
         if d is None:
             out.append({"id": item["id"], "error_code": "DEVICE_NOT_FOUND"})
             continue
-        out.append({"id": d["id"], "capabilities": [{
-            "type": "devices.capabilities.on_off",
-            "state": {"instance": "on", "value": d["state"]["on"]}}]})
+        out.append({"id": d["id"], "capabilities": capability_states(d)})
     return {"request_id": x_request_id, "payload": {"devices": out}}
 
 

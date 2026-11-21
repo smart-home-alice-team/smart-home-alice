@@ -2,3 +2,5 @@ __pycache__/
 .env
 .pytest_cache/
 *.pyc
+infra/zigbee2mqtt/*
+!infra/zigbee2mqtt/configuration.yaml

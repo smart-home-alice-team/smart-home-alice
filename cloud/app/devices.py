@@ -15,3 +15,13 @@ DEVICES = {
         "state": {"on": True},
     },
 }
+
+
+def capability_states(device: dict) -> list[dict]:
+    """Текущие состояния всех умений устройства в формате Яндекса."""
+    states = []
+    for cap in device["capabilities"]:
+        if cap["type"] == "devices.capabilities.on_off":
+            states.append({"type": cap["type"],
+                           "state": {"instance": "on", "value": device["state"]["on"]}})
+    return states
